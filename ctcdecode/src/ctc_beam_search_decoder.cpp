@@ -11,6 +11,7 @@
 #include "ThreadPool.h"
 #include "fst/fstlib.h"
 #include "path_trie.h"
+#include <regex>
 
 using FSTMATCH = fst::SortedMatcher<fst::StdVectorFst>;
 
@@ -95,7 +96,16 @@ std::vector<std::pair<double, Output>> ctc_beam_search_decoder(
               prefix->log_prob_nb_cur, log_prob_c + prefix->log_prob_nb_prev);
         }
         // get new prefix
-        auto prefix_new = prefix->get_path_trie(c, time_step);
+      PathTrie* new_path = new PathTrie;
+      new_path->character = c;
+      new_path->timestep = time_step;
+      new_path->parent = prefix;
+      std::vector<int> output;
+      std::vector<int> timesteps;
+      new_path->get_path_vec(output, timesteps, space_id, 1);
+      std::vector<std::string> words;
+      words = ext_scorer->split_labels(output);
+        auto prefix_new = prefix->get_path_trie(words, c, time_step);
 
         if (prefix_new != nullptr) {
           float log_p = -NUM_FLT_INF;

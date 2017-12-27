@@ -5,6 +5,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
+#include <regex>
 
 #include "decoder_utils.h"
 
@@ -34,7 +35,7 @@ PathTrie::~PathTrie() {
   }
 }
 
-PathTrie* PathTrie::get_path_trie(int new_char, int new_timestep, bool reset) {
+PathTrie* PathTrie::get_path_trie(const std::vector<std::string>& words, int new_char, int new_timestep, bool reset) {
   auto child = children_.begin();
   for (child = children_.begin(); child != children_.end(); ++child) {
     if (child->first == new_char) {
@@ -51,9 +52,19 @@ PathTrie* PathTrie::get_path_trie(int new_char, int new_timestep, bool reset) {
     }
     return (child->second);
   } else {
-    if (has_dictionary_) {
+	bool skip_dict = false;
+	std::__cxx11::regex has_digit(".*[0-9].*");
+	for (size_t i = 0; i < words.size(); ++i) {
+	  if (regex_match(words[i], has_digit)) {
+		  skip_dict = true;
+		  std::string log = std::to_string(i) +"::PATHTRIE:: word - " + words[i] + " size - " + std::to_string(words.size());
+		  //std::cout << log << std::endl;
+	  }
+	}
+    if (has_dictionary_ && !skip_dict) {
       matcher_->SetState(dictionary_state_);
       bool found = matcher_->Find(new_char);
+      //printf("found: %s\n", found ? "true":"false");
       if (!found) {
         // Adding this character causes word outside dictionary
         auto FSTZERO = fst::TropicalWeight::Zero();
@@ -80,6 +91,10 @@ PathTrie* PathTrie::get_path_trie(int new_char, int new_timestep, bool reset) {
       new_path->character = new_char;
       new_path->timestep = new_timestep;
       new_path->parent = this;
+      new_path->dictionary_ = dictionary_;
+      new_path->dictionary_state_ = dictionary_state_;
+      new_path->has_dictionary_ = true;
+      new_path->matcher_ = matcher_;
       children_.push_back(std::make_pair(new_char, new_path));
       return new_path;
     }

@@ -10,8 +10,6 @@
 #include "util/tokenize_piece.hh"
 
 #include "decoder_utils.h"
-#include <regex>
-#include <string>
 
 using namespace lm::ngram;
 
@@ -79,19 +77,20 @@ double Scorer::get_log_cond_prob(const std::vector<std::string>& words) {
   lm::ngram::State state, tmp_state, out_state;
   // avoid to inserting <s> in begin
   model->NullContextWrite(&state);
-  std::__cxx11::regex has_digit(".*[0-9].*");
   for (size_t i = 0; i < words.size(); ++i) {
-    lm::WordIndex word_index = model->BaseVocabulary().Index(words[i]);
+    std::string curr_word;
+    curr_word = words[i];
+    for(size_t i = 0; i < curr_word.size(); ++i) {
+	if(isdigit(curr_word[i])) {
+	    curr_word[i] = 'N';
+	    //std::cout << "::FOUND DIGIT:: " + curr_word << std::endl;
+	}
+    }
+
+    lm::WordIndex word_index = model->BaseVocabulary().Index(curr_word);
     // encounter OOV
-    //if (word_index == 0) {
-      //return OOV_SCORE;
-    //}
-    if (regex_match(words[i], has_digit)) {
-	continue;
-        //printf("::DIGIT:: %d: word- %s, vocabIndex- %d, prob- %f\n", i, words[i].c_str(), word_index, cond_prob);
-    } else if (word_index == 0) {
-        //printf("::OOV:: %d: word- %s, vocabIndex- %d, prob- %f\n", i, words[i].c_str(), word_index, cond_prob);
-	return OOV_SCORE;
+    if (word_index == 0) {
+      return OOV_SCORE;
     }
     cond_prob = model->BaseScore(&state, word_index, &out_state);
     tmp_state = state;
@@ -104,16 +103,7 @@ double Scorer::get_log_cond_prob(const std::vector<std::string>& words) {
 
 double Scorer::get_sent_log_prob(const std::vector<std::string>& words) {
   std::vector<std::string> sentence;
-
-  std::vector<std::string> words_mod;
-  std::__cxx11::regex has_digit(".*[0-9].*");
-  for (size_t i = 0; i < words.size(); ++i) {
-	  if (!regex_match(words[i], has_digit)) {
-		  words_mod.push_back(words[i]);
-	  }
-  }
-  
-  if (words_mod.size() == 0) {
+  if (words.size() == 0) {
     for (size_t i = 0; i < max_order_; ++i) {
       sentence.push_back(START_TOKEN);
     }
@@ -121,27 +111,18 @@ double Scorer::get_sent_log_prob(const std::vector<std::string>& words) {
     for (size_t i = 0; i < max_order_ - 1; ++i) {
       sentence.push_back(START_TOKEN);
     }
-    sentence.insert(sentence.end(), words_mod.begin(), words_mod.end());
+    sentence.insert(sentence.end(), words.begin(), words.end());
   }
   sentence.push_back(END_TOKEN);
   return get_log_prob(sentence);
 }
 
 double Scorer::get_log_prob(const std::vector<std::string>& words) {
-
-  std::vector<std::string> words_mod;
-  std::__cxx11::regex has_digit(".*[0-9].*");
-  for (size_t i = 0; i < words.size(); ++i) {
-	  if (!regex_match(words[i], has_digit)) {
-		  words_mod.push_back(words[i]);
-	  }
-  }
-
-  assert(words_mod.size() > max_order_);
+  assert(words.size() > max_order_);
   double score = 0.0;
-  for (size_t i = 0; i < words_mod.size() - max_order_ + 1; ++i) {
-    std::vector<std::string> ngram(words_mod.begin() + i,
-                                   words_mod.begin() + i + max_order_);
+  for (size_t i = 0; i < words.size() - max_order_ + 1; ++i) {
+    std::vector<std::string> ngram(words.begin() + i,
+                                   words.begin() + i + max_order_);
     score += get_log_cond_prob(ngram);
   }
   return score;
@@ -192,34 +173,21 @@ std::vector<std::string> Scorer::make_ngram(PathTrie* prefix) {
   PathTrie* current_node = prefix;
   PathTrie* new_node = nullptr;
 
-  std::__cxx11::regex has_digit(".*[0-9].*");
   for (int order = 0; order < max_order_; order++) {
     std::vector<int> prefix_vec;
     std::vector<int> prefix_steps;
 
     if (is_character_based_) {
       new_node = current_node->get_path_vec(prefix_vec, prefix_steps, SPACE_ID_, 1);
-      //current_node = new_node;
+      current_node = new_node;
     } else {
       new_node = current_node->get_path_vec(prefix_vec, prefix_steps, SPACE_ID_);
-      //current_node = new_node->parent;  // Skipping spaces
+      current_node = new_node->parent;  // Skipping spaces
     }
 
     // reconstruct word
     std::string word = vec2str(prefix_vec);
-
-    // skip adding words which contain digits to ngram
-    if (regex_match(word, has_digit)) {
-        //printf("::NGRAM-DIGIT:: word- %s\n", word);
-	continue;
-    } else {
-	if (is_character_based_){
-	    current_node = new_node;
-	} else {
-	    current_node = new_node -> parent;  // Skipping spaces
-	}
-	ngram.push_back(word);
-    }
+    ngram.push_back(word);
 
     if (new_node->character == -1) {
       // No more spaces, but still need order

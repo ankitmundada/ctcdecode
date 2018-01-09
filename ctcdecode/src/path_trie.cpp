@@ -5,7 +5,6 @@
 #include <memory>
 #include <utility>
 #include <vector>
-#include <regex>
 
 #include "decoder_utils.h"
 
@@ -53,14 +52,18 @@ PathTrie* PathTrie::get_path_trie(const std::vector<std::string>& words, int new
     return (child->second);
   } else {
 	bool skip_dict = false;
-	std::__cxx11::regex has_digit(".*[0-9].*");
-	for (size_t i = 0; i < words.size(); ++i) {
-	  if (regex_match(words[i], has_digit)) {
-		  skip_dict = true;
-		  std::string log = std::to_string(i) +"::PATHTRIE:: word - " + words[i] + " size - " + std::to_string(words.size());
-		  //std::cout << log << std::endl;
-	  }
+    if (!words.empty()){
+  	for (size_t j = 0; j < words.size(); ++j) {
+        for(size_t i = 0; i < words[j].size(); ++i) {
+            if(isdigit(words[j][i])) {
+              skip_dict = true;
+              std::string log = std::to_string(i) +"::PATHTRIE:: word - " + words[j] + " size - " + std::to_string(words.size());
+              std::cout << log << std::endl;
+              break;
+            }
+        }
 	}
+    }
     if (has_dictionary_ && !skip_dict) {
       matcher_->SetState(dictionary_state_);
       bool found = matcher_->Find(new_char);

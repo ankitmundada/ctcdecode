@@ -78,10 +78,13 @@ std::vector<std::pair<double, Output>> ctc_beam_search_decoder(
     for (size_t index = 0; index < log_prob_idx.size(); index++) {
       auto c = log_prob_idx[index].first;
       auto log_prob_c = log_prob_idx[index].second;
-
+//      if(c == space_id){
+//          std::cout << "::SPACE_CHAR::" << std::endl;
+//      }
       for (size_t i = 0; i < prefixes.size() && i < beam_size; ++i) {
         auto prefix = prefixes[i];
         if (full_beam && log_prob_c + prefix->score < min_cutoff) {
+          //std::cout << "::BROKE AT PREFIX::" << std::endl;
           break;
         }
         // blank
@@ -95,23 +98,28 @@ std::vector<std::pair<double, Output>> ctc_beam_search_decoder(
           prefix->log_prob_nb_cur = log_sum_exp(
               prefix->log_prob_nb_cur, log_prob_c + prefix->log_prob_nb_prev);
         }
+        if(c == space_id){
+            std::cout << "SPACE_CHAR_2" << std::endl;}
         // get new prefix
-      PathTrie* new_path = new PathTrie;
-      new_path->character = c;
-      new_path->timestep = time_step;
-      new_path->parent = prefix;
-      std::vector<int> output;
-      std::vector<int> timesteps;
-      new_path->get_path_vec(output, timesteps, space_id, 1);
-      std::vector<std::string> words;
-      words = ext_scorer->split_labels(output);
+        std::vector<std::string> words;
+        if ( c != space_id){
+            PathTrie* new_path = new PathTrie;
+            new_path->character = c;
+            new_path->timestep = time_step;
+            new_path->parent = prefix;
+            std::vector<int> output;
+            std::vector<int> timesteps;
+            new_path->get_path_vec(output, timesteps, space_id, 1);
+            words = ext_scorer->split_labels(output);
+        }
+        for(int ank=0; ank < words.size(); ++ank){
+        std::cout << words[ank] + "_END"<< std::endl;}
         auto prefix_new = prefix->get_path_trie(words, c, time_step);
 
         if (prefix_new != nullptr) {
           float log_p = -NUM_FLT_INF;
 
-          if (c == prefix->character &&
-              prefix->log_prob_b_prev > -NUM_FLT_INF) {
+          if (c == prefix->character && prefix->log_prob_b_prev > -NUM_FLT_INF) {
             log_p = log_prob_c + prefix->log_prob_b_prev;
           } else if (c != prefix->character) {
             log_p = log_prob_c + prefix->score;

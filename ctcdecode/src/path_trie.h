@@ -18,7 +18,7 @@ public:
   ~PathTrie();
 
   // get new prefix after appending new char
-  PathTrie* get_path_trie(const std::vector<std::string>& words, int new_char, int new_timestep, bool reset = true);
+  PathTrie* get_path_trie(bool skip_dict, int new_char, int new_timestep, bool reset = true);
 
   // get the prefix in index from root to current node
   PathTrie* get_path_vec(std::vector<int>& output, std::vector<int>& timesteps);

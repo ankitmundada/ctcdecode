@@ -11,7 +11,6 @@
 #include "ThreadPool.h"
 #include "fst/fstlib.h"
 #include "path_trie.h"
-#include <regex>
 
 using FSTMATCH = fst::SortedMatcher<fst::StdVectorFst>;
 
@@ -42,6 +41,7 @@ std::vector<std::pair<double, Output>> ctc_beam_search_decoder(
   if ((size_t)space_id >= vocabulary.size()) {
     space_id = -2;
   }
+  //std::cout << "::SPACE_ID:: " <<  space_id << std::endl;
 
   // init prefixes' root
   PathTrie root;
@@ -98,23 +98,27 @@ std::vector<std::pair<double, Output>> ctc_beam_search_decoder(
           prefix->log_prob_nb_cur = log_sum_exp(
               prefix->log_prob_nb_cur, log_prob_c + prefix->log_prob_nb_prev);
         }
-        if(c == space_id){
-            std::cout << "SPACE_CHAR_2" << std::endl;}
+        //if(c == space_id){std::cout << "SPACE_CHAR_2" << std::endl;}
         // get new prefix
-        std::vector<std::string> words;
-        if ( c != space_id){
-            PathTrie* new_path = new PathTrie;
-            new_path->character = c;
-            new_path->timestep = time_step;
-            new_path->parent = prefix;
-            std::vector<int> output;
-            std::vector<int> timesteps;
-            new_path->get_path_vec(output, timesteps, space_id, 1);
-            words = ext_scorer->split_labels(output);
+        char c_str = ext_scorer->ind2str(c);
+        bool skip_dict = std::isdigit(static_cast<unsigned char>(c_str)) != 0;
+        if (!skip_dict && ext_scorer != nullptr) {
+          std::vector<int> output1;
+          std::vector<int> timesteps1;
+          prefix->get_path_vec(output1, timesteps1, space_id, 1);
+          auto words = ext_scorer->split_labels(output1);
+          //std::cout << "::WORDS_SIZE:: " << words.size() << std::endl;
+          for (int i=0; i < words.size(); i++){
+            for (int j=0; j < words[i].size(); j++){
+                if (std::isdigit(words[i][j])){
+                    skip_dict = true;
+                    break;
+                }
+            }
+            if(skip_dict) { break;}
+          }
         }
-        for(int ank=0; ank < words.size(); ++ank){
-        std::cout << words[ank] + "_END"<< std::endl;}
-        auto prefix_new = prefix->get_path_trie(words, c, time_step);
+        auto prefix_new = prefix->get_path_trie(skip_dict, c, time_step);
 
         if (prefix_new != nullptr) {
           float log_p = -NUM_FLT_INF;
@@ -138,8 +142,10 @@ std::vector<std::pair<double, Output>> ctc_beam_search_decoder(
 
             float score = 0.0;
             std::vector<std::string> ngram;
+            //std::cout << "BEFORE NGRAM" << std::endl;
             ngram = ext_scorer->make_ngram(prefix_to_score);
             score = ext_scorer->get_log_cond_prob(ngram) * ext_scorer->alpha;
+            //std::cout << "::LM_SCORE:: " << score << std::endl;
             log_p += score;
             log_p += ext_scorer->beta;
           }

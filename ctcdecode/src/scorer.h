@@ -59,6 +59,9 @@ public:
   // retrun true if the language model is character based
   bool is_character_based() const { return is_character_based_; }
 
+  // convert index to character
+  char ind2str(int ind);
+  
   // reset params alpha & beta
   void reset_params(float alpha, float beta);
 

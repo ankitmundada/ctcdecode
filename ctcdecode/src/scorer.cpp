@@ -80,17 +80,23 @@ double Scorer::get_log_cond_prob(const std::vector<std::string>& words) {
   for (size_t i = 0; i < words.size(); ++i) {
     std::string curr_word;
     curr_word = words[i];
+    bool skip_oov = false;
     for(size_t i = 0; i < curr_word.size(); ++i) {
-	if(isdigit(curr_word[i])) {
-	    curr_word[i] = 'N';
-	    //std::cout << "::FOUND DIGIT:: " + curr_word << std::endl;
-	}
+        if(isdigit(curr_word[i])) {
+            curr_word[i] = 'N';
+            skip_oov = true;
+            //std::cout << "::FOUND DIGIT:: " + curr_word << std::endl;
+        }
     }
 
     lm::WordIndex word_index = model->BaseVocabulary().Index(curr_word);
     // encounter OOV
     if (word_index == 0) {
-      return OOV_SCORE;
+        if(skip_oov){
+            continue;
+        } else {
+            return OOV_SCORE;
+        }
     }
     cond_prob = model->BaseScore(&state, word_index, &out_state);
     tmp_state = state;
@@ -141,6 +147,10 @@ std::string Scorer::vec2str(const std::vector<int>& input) {
   return word;
 }
 
+char Scorer::ind2str(int ind){
+    return char_list_[ind][0];
+}
+
 std::vector<std::string> Scorer::split_labels(const std::vector<int>& labels) {
   if (labels.empty()) return {};
 
@@ -151,6 +161,7 @@ std::vector<std::string> Scorer::split_labels(const std::vector<int>& labels) {
   } else {
     words = split_str(s, " ");
   }
+  //std::cout << "::SPLIT LABELS:: " + s << std::endl;
   return words;
 }
 
@@ -187,6 +198,7 @@ std::vector<std::string> Scorer::make_ngram(PathTrie* prefix) {
 
     // reconstruct word
     std::string word = vec2str(prefix_vec);
+    //std::cout << "::NGRAM:: " + word << std::endl;
     ngram.push_back(word);
 
     if (new_node->character == -1) {

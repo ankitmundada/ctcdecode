@@ -60,7 +60,6 @@ std::vector<std::pair<double, Output>> ctc_beam_search_decoder(
   // prefix search over time
   for (size_t time_step = 0; time_step < num_time_steps; ++time_step) {
     auto &prob = probs_seq[time_step];
-    if ( probs_seq[time_step][0] < 0) { break; }
 
     float min_cutoff = -NUM_FLT_INF;
     bool full_beam = false;

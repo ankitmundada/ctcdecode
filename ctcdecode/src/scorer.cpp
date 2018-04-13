@@ -80,22 +80,19 @@ double Scorer::get_log_cond_prob(const std::vector<std::string>& words) {
   for (size_t i = 0; i < words.size(); ++i) {
     std::string curr_word;
     curr_word = words[i];
-    bool skip_oov = false;
-    for(size_t i = 0; i < curr_word.size(); ++i) {
-        if(isdigit(curr_word[i])) {
-            curr_word[i] = 'N';
-            skip_oov = true;
-            //std::cout << "::FOUND DIGIT:: " + curr_word << std::endl;
-        }
-    }
-
     lm::WordIndex word_index = model->BaseVocabulary().Index(curr_word);
     // encounter OOV
     if (word_index == 0) {
-        if(skip_oov){
-            continue;
-        } else {
-            return OOV_SCORE;
+        std::string tmp_word = curr_word;
+        for(size_t i = 0; i < tmp_word.size(); ++i) {
+            if(isdigit(tmp_word[i])) {
+                //std::cout << "::FOUND DIGIT:: " + curr_word << std::endl;
+                tmp_word[i] = 'N';
+            }
+        }
+        if (tmp_word != curr_word){
+            // The word got N-tokenized, recheck its index
+            word_index = model->BaseVocabulary().Index(tmp_word);
         }
     }
     cond_prob = model->BaseScore(&state, word_index, &out_state);

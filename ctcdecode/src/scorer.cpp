@@ -95,7 +95,7 @@ double Scorer::get_log_cond_prob(const std::vector<std::string>& words) {
             word_index = model->BaseVocabulary().Index(tmp_word);
         }
     }
-    std::cout << "N_GRAM_WORD-" + i + " : " + curr_word << std::endl;
+    std::cout << "N_GRAM_WORD-" + std::to_string(i) + " : " + curr_word << std::endl;
     cond_prob = model->BaseScore(&state, word_index, &out_state);
     tmp_state = state;
     state = out_state;

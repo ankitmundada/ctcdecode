@@ -53,7 +53,8 @@ PathTrie* PathTrie::get_path_trie(int new_char, int new_timestep, bool reset) {
   } else {
     if (has_dictionary_) {
       matcher_->SetState(dictionary_state_);
-      bool found = matcher_->Find(new_char);
+      int new_char_mod = new_char >= 28 && new_char <= 37 ? 40 : new_char;
+      bool found = matcher_->Find(new_char_mod);
       if (!found) {
         // Adding this character causes word outside dictionary
         auto FSTZERO = fst::TropicalWeight::Zero();

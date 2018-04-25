@@ -46,7 +46,7 @@ public:
          const std::vector<std::string> &vocabulary);
   ~Scorer();
 
-  double get_log_cond_prob(const std::vector<std::string> &words);
+  double get_log_cond_prob(std::vector<std::string> &words);
 
   double get_sent_log_prob(const std::vector<std::string> &words);
 

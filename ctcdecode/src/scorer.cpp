@@ -71,7 +71,7 @@ void Scorer::load_lm(const std::string& lm_path) {
   }
 }
 
-double Scorer::get_log_cond_prob(const std::vector<std::string>& words) {
+double Scorer::get_log_cond_prob(std::vector<std::string>& words) {
   lm::base::Model* model = static_cast<lm::base::Model*>(language_model_);
   double cond_prob;
   lm::ngram::State state, tmp_state, out_state;
@@ -81,7 +81,12 @@ double Scorer::get_log_cond_prob(const std::vector<std::string>& words) {
     lm::WordIndex word_index = model->BaseVocabulary().Index(words[i]);
     // encounter OOV
     if (word_index == 0) {
-      return OOV_SCORE;
+        for(auto &c: words[i]) {
+            if(c == '0' || c == '1' || c == '2' || c =='3' || c == '4' || c=='5' || c == '6' || c == '7' || c == '8' || c == '9') {
+                c = 'N';
+            }
+        }
+        word_index = model->BaseVocabulary().Index(words[i]);
     }
     cond_prob = model->BaseScore(&state, word_index, &out_state);
     tmp_state = state;

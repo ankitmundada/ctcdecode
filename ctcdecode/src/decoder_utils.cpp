@@ -155,6 +155,8 @@ bool add_word_to_dictionary(
   for (auto &c : characters) {
     if (c == " ") {
       int_word.push_back(SPACE_ID);
+    } else if(c == "N") {
+        int_word.push_back(40);
     } else {
       auto int_c = char_map.find(c);
       if (int_c != char_map.end()) {
